@@ -1,0 +1,87 @@
+$(function(){
+
+    // mask
+    // $('.gd_review_container #gd_review_phone').mask("+8 (999) 999-99-99");
+
+    // отправка вопроса
+    $('.gd_btn_review_send').click(function(){
+
+        var name    = $('#gd_review_name');
+        var phone   = $('#gd_review_phone');
+        var text    = $('#gd_review_text');
+        var ip      = Geo[0];
+        var country = Geo[1];
+        var city    = Geo[2];
+
+        if (validate(name) && validate(phone) && validate(text)) {
+
+            $.ajax({
+                type: "POST",
+                url:  "/reviews/action.php",
+                data: {
+                    name    : name.val(),
+                    phone   : phone.val(),
+                    text    : text.val(),
+                    ip      : ip,
+                    country : country,
+                    city    : city
+                },
+                success: function(data) {
+
+                    swal({
+                        title             : '',
+                        text              : data+'<i class="close fa fa-times fa"></i>',
+                        html              : true,
+                        showConfirmButton : false,
+                        customClass       : 'question_swal'
+                        // timer             : 5000
+                    });
+
+                    $('.gd_popup_overlay_review').fadeOut(200);
+                    name.val('').css("background-color", 'white');
+                    phone.val('').css("background-color", 'white');
+                    text.val('').css("background-color", 'white');
+                }
+            });
+        }
+        else swal({
+                title: '',
+                text: 'Некорректно заполнены данные!<i class="close fa fa-times fa"></i>',
+                html              : true,
+                showConfirmButton : false,
+                customClass       : 'question_swal',
+                timer             : 5000
+            });
+    });
+
+    // open-close form question
+    $('.open_review_form').click(function(){
+        $('.gd_popup_overlay_review').fadeIn(200);
+    });
+    $('.gd_review_container #gd_question_form1 .fa-times').click(function(){
+        $('.gd_popup_overlay_review').fadeOut(200);
+    });
+
+    // close swal
+    $('body').on("click",".question_swal .fa-times",function(e) {
+
+        swal.close();
+    });
+});
+
+// валидация полей формы
+function validate(field) {
+
+    var correctColor = 'white';
+    var wrongColor   = '#e86868';
+    var err = true;
+
+    if (field.val() == '') {
+
+        field.css("background-color", wrongColor);
+        err = false;
+    }
+    else field.css("background-color", correctColor);
+
+    return err;
+}

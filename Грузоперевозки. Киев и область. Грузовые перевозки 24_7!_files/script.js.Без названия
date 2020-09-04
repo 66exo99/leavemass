@@ -1,0 +1,101 @@
+$(function(){
+
+    // отправка вопроса
+    $('.gd_btn_question_send').click(function(){
+
+        var subject = $('#gd_question_subject').val();
+        var name    = $('#gd_question_name');
+        var mail    = $('#gd_question_mail');
+        var text    = $('#gd_question_text');
+        var ip      = Geo[0];
+        var country = Geo[1];
+        var city    = Geo[2];
+
+        if (validate1(name) && validate1(mail) && validate1(text)) {
+            $.ajax({
+                type: "POST",
+                url:  "/question/action.php",
+                data: {
+                    subject : subject,
+                    name    : name.val(),
+                    mail    : mail.val(),
+                    text    : text.val(),
+                    ip      : ip,
+                    country : country,
+                    city    : city
+                },
+                success: function(data) {
+
+                    swal({
+                        title             : '',
+                        text              : data+'<i class="close fa fa-times fa"></i>',
+                        html              : true,
+                        showConfirmButton : false,
+                        customClass       : 'question_swal',
+                        timer             : 5000
+                    });
+
+                    $('.gd_popup_overlay_question').fadeOut(200);
+                    name.val('').css("background-color", 'white');
+                    mail.val('').css("background-color", 'white');
+                    text.val('').css("background-color", 'white');
+                }
+            });
+        }
+        else swal({
+                title: '',
+                text: 'Некорректно заполнены данные!<i class="close fa fa-times fa"></i>',
+                html              : true,
+                showConfirmButton : false,
+                customClass       : 'question_swal',
+                timer             : 5000
+            });
+    });
+
+    // close swal
+    $('body').on("click",".question_swal .fa-times",function(e) {
+
+        swal.close();
+    });
+
+    // open-close form question
+    $('.open_question_form, .makequestion').click(function(){
+        $('.gd_popup_overlay_question').fadeIn(200);
+    });
+    $('.gd_question_container #gd_question_form .fa-times').click(function(){
+        $('.gd_popup_overlay_question').fadeOut(200);
+    });
+});
+
+// правильность ввода мыла
+function isValidMail(mail) {
+
+    var pattern = new RegExp(/^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i);
+    return pattern.test(mail);
+}
+
+// валидация полей формы
+function validate1(field) {
+
+    var correctColor = 'white';
+    var wrongColor   = '#e86868';
+    var err = true;
+
+    if (field.val() == '') {
+
+        field.css("background-color", wrongColor);
+        err = false;
+    }
+    else {
+
+        // если мыло, то еще и проходим проверку на правильность
+        if(field.attr('id') == 'gd_question_mail' && !isValidMail(field.val())) {
+
+            field.css("background-color", wrongColor);
+            err = false;
+        }
+        else field.css("background-color", correctColor);
+    }
+
+    return err;
+}

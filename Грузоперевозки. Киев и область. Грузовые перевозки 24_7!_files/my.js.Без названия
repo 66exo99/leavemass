@@ -1,0 +1,582 @@
+$(function() {
+    // Маска на номер телефона
+    $('.phone').mask("(999) 999-99-99");
+
+    // open/close form
+    $('.open_popup, .close_popup').click(function(){
+        $('.popup_overlay[data-popup='+$(this).attr('data-popup')+']').fadeToggle();
+    });
+
+    // parallax
+    // $('.banner').parallax({imageSrc: '/img/bg-banner2.jpg'});
+    // $('.banner').parallax({positionY: '1000px'});
+
+    // change tab
+    $('.left_tabs .tab_item').click(function(){
+        $('.tab_item').removeClass('active_tab');
+        $(this).addClass('active_tab');
+        var tab = $(this).attr('data-tab');
+        $(this).closest('.container').find('.right_tabs .tab_item[data-tab='+tab+']').addClass('active_tab');
+    });
+    // Если нажали кнопку отправить
+    $(".request").click(function() {
+        var correctColor = 'white'; // цвет поля при верных данных
+        var wrongColor   = 'red';   // цвет поля при ошибочных данных
+        var nameVal      = '';      // имя
+        var phoneVal     = '';      // телефон
+        var messageVal   = '';      // сообщение
+        var formname     = 'Oбратный звонок'; // форма по умолчанию
+        var er           = 0;       // флаг ошибки
+
+        // телефон - берем в любом случае
+        var phone = $(this).closest(".popup_container").find(".phone");
+        phoneVal = phone.val();
+
+        if(phoneVal == "") {
+            phone.css("background-color", wrongColor);
+            er = 1;
+        }
+        else phone.css("background-color", correctColor);
+
+        // для заявки
+        if ($(this).hasClass("request_order")) {
+
+            var name = $(this).closest(".popup_container").find(".name");
+            nameVal = name.val();
+
+            if(nameVal == "") {
+                name.css("background-color", wrongColor);
+                er = 1;
+            }
+            else name.css("background-color", correctColor);
+
+            var message = $(this).closest(".popup_container").find(".message");
+            messageVal = message.val();
+
+            if(messageVal == "") {
+                message.css("background-color", wrongColor);
+                er = 1;
+            }
+            else message.css("background-color", correctColor);
+
+            formname = 'Заявка';
+        }
+
+        // если ошибок нет, отправляем заявку
+        if (er == 1) return;
+        else {
+            var ip      = Geo[0];
+            var country = Geo[1];
+            var city    = Geo[2];
+
+            $.ajax({
+                type: "POST",
+                url:  "/functions/mail.php",
+                data: {
+                    formname : formname,
+                    name     : nameVal,
+                    phone    : phoneVal,
+                    message  : messageVal,
+                    ip       : ip,
+                    country  : country,
+                    city     : city
+                },
+                success: function(data) {
+
+                    if (data != '') {
+                        swal({
+                            title             : '',
+                            text              : data+'<i class="close fa fa-times fa"></i>',
+                            html              : true,
+                            showConfirmButton : false,
+                            customClass       : 'question_swal',
+                            timer             : 4000
+                        });
+                    }
+                    else {
+
+                        swal({
+                            title: '',
+                            text: 'Заявка принята. Ожидайте звонка.<br>Спасибо за обращение!<i class="close fa fa-times fa"></i>',
+                            html              : true,
+                            showConfirmButton : false,
+                            customClass       : 'question_swal',
+                            timer             : 4000
+                        });
+                        // Отправляем номер конверсии в функцию отслеживания целей
+                        if (formname == 'Oбратный звонок') { Conv('1');}
+                        else { Conv('2'); }
+                    }
+                }
+            });
+            // очищаем все поля во всех формах
+            $('.name').val('');
+            $('.phone').val('');
+            $('.message').val('');
+            // скрываем текущую форму
+            $('.popup_overlay').fadeOut(200);
+        }
+
+         function Conv(conv) {
+             if (conv == 1) {
+                 var order = 'callback';
+             } else if (conv == 2) {
+                 var order = 'order';
+             }
+             yaCounter42885784.reachGoal(order);
+             ga('send', 'event', order, 'clicked');
+         }
+
+    });
+
+    // close swal
+    $('body').on("click",".question_swal .fa-times",function(e) {
+        swal.close();
+    });
+
+    // есть грузчики?
+    $('input[name="have_gr"]').change(function(){
+        if($(this).is(':checked')) $(this).closest('.row').find('.qt_gr_wrapper').fadeIn();
+        else $(this).closest('.row').find('.qt_gr_wrapper').fadeOut();
+    });
+
+    // view active usloviya vakansii
+    $(".usloviya_vakansii div[data-vakansiya='voditel']").css("display","block");
+
+    // change vakansiya
+    $('.vakansiya').click(function(){
+        var vakansiya = $(this).attr('data-vakansiya');
+
+        $.ajax({
+            type: "POST",
+            url:  window.location.pathname,
+            data: {
+                vakansiya : vakansiya
+            },
+            success: function(data) {
+                $('body').html(data);
+
+                setTimeout(function(){
+                    $(".usloviya_vakansii .text3>div").css("display","none");
+                    $(".usloviya_vakansii div[data-vakansiya='"+vakansiya+"']").css("display","block");
+                    mobAnimate();
+                },500);
+            }
+        });
+    });
+
+    // show/hidden mobile menu
+    $('.show_menu').click(function() {
+        $(this).next().slideToggle(400);
+    });
+
+    // запрет ввода букв + backspace, delete, tab и escape
+    jQuery.fn.ForceNumericOnly = function() {
+        return this.each(function() {
+            $(this).keydown(function(e) {
+                var key = e.charCode || e.keyCode || 0;
+                return (
+                    key == 8 ||
+                    key == 9 ||
+                    key == 46 ||
+                    (key >= 37 && key <= 40) ||
+                    (key >= 48 && key <= 57) ||
+                    (key >= 96 && key <= 105));
+            });
+        });
+    };
+    $('input[name="idd"], input[name="dlina"], input[name="shirina"], input[name="visota"], input[name="obiem"], input[name="gruz"]').ForceNumericOnly();
+
+    // появление договора
+    $(".a_fancybox").fancybox({
+        openEffect  : 'elastic',
+        closeEffect : 'elastic',
+        helpers : {
+            title : {
+                type : 'over'
+            }
+            // overlay : null
+        },
+        type   :'iframe',
+        beforeShow: function() {
+
+            $('.fancybox-overlay').each(function(i,elem) {
+                if (i != 0) $(elem).remove();
+            });
+        }
+    });
+
+    // submit vakansiya
+    $('.submit_vakansiya').click(function() {
+
+        var errorFile = false;
+
+        // новые объект FormData, где хранятся данные с формы
+        var formData = new FormData();
+        var vakansiya  = $('.active_vakansiya').attr('data-vakansiya');
+
+        // добавление файлов
+        $('#form_upload_foto input[type="file"]').each(function(i,elem) {
+            formData.append($(elem).attr('name'), $(elem)[0].files[0]);
+
+            if (vakansiya == 'voditel') {
+                if (typeof $(elem)[0].files[0] === "undefined") errorFile = true;
+            }
+            else {
+                if (typeof $(elem)[0].files[0] === "undefined" && ($(elem).attr('name') == 'passport_1' || $(elem).attr('name') == 'passport_2' || $(elem).attr('name') == 'passport_4' || $(elem).attr('name') == 'passport_3' || $(elem).attr('name') == 'inn') ) errorFile = true;
+            }
+        });
+
+        // добавление текстовых полей
+        var phone          = $('#form_upload_foto input[name="phone"]').val();
+        var phone2         = $('#form_upload_foto input[name="phone2"]').val();
+        var phone3         = $('#form_upload_foto input[name="phone3"]').val();
+        var phoneVal       = (phone == '38'  || phone.length < 12)  ? '' : phone;
+        var phoneVal2      = (phone2 == '38' || phone2.length < 12) ? '' : phone2;
+        var phoneVal3      = (phone3 == '38' || phone3.length < 12) ? '' : phone3;
+        var gr             = ($('#form_upload_foto input[name="gr"]').prop('checked') || vakansiya == 'gruzchik') ? 'Да' : 'Нет';
+        var qt_gr          = $('#form_upload_foto select[name="qt_gr"]').val();
+        var qt_gr1         = ($('#form_upload_foto input[name="qt_gr"]').prop('checked')) ? qt_gr : 0;
+        var vakansiya_name = (vakansiya == 'voditel')  ? 'Водитель' : 'Грузчик';
+        var kpm            = (vakansiya == 'voditel') ? $('#form_upload_foto select[name="kpm"]').val() : 0;
+        // var captcha        = grecaptcha.getResponse();
+
+        formData.append('name',      $('#form_upload_foto input[name="name"]').val());
+        formData.append('inn',       $('#form_upload_foto input[name="idd"]').val());
+        formData.append('address',   $('#form_upload_foto input[name="address"]').val());
+        formData.append('tel',       phoneVal);
+        formData.append('tel2',      phoneVal2);
+        formData.append('tel3',      phoneVal3);
+        formData.append('mail',      $('#form_upload_foto input[name="mail_v"]').val());
+        formData.append('auto',      $('#form_upload_foto input[name="auto"]').val());
+        formData.append('kpm',       kpm);
+        formData.append('dlina',     $('#form_upload_foto input[name="dlina"]').val());
+        formData.append('shirina',   $('#form_upload_foto input[name="shirina"]').val());
+        formData.append('visota',    $('#form_upload_foto input[name="visota"]').val());
+        formData.append('obiem',     $('#form_upload_foto input[name="obiem"]').val());
+        formData.append('gruz',      $('#form_upload_foto input[name="gruz"]').val());
+        formData.append('gr',        gr);
+        formData.append('qt_gr',     qt_gr1);
+        formData.append('message',   $('#form_upload_foto textarea[name="dopinfo"]').val());
+        formData.append('info',      vakansiya_name);
+        // formData.append('captcha',   captcha);
+        formData.append('vakansiya', vakansiya);
+
+        // валидация значений
+        // общие для водителя и грузчика
+        if (validateVakansiyaField('name') && validateVakansiyaField('idd') && validateVakansiyaField('address') && validateVakansiyaField('phone') && validateVakansiyaField('mail_v')) {
+
+            // для водителя проверяем и другие поля
+            if (vakansiya == 'voditel') {
+                if (!validateVakansiyaField('auto') || !validateVakansiyaField('dlina') || !validateVakansiyaField('shirina') || !validateVakansiyaField('visota') || !validateVakansiyaField('obiem') || !validateVakansiyaField('gruz')) {
+                    swal({
+                        title             : '',
+                        text              : 'Не корректно заполнены обязательные поля <i class="close fa fa-times fa"></i>',
+                        html              : true,
+                        showConfirmButton : false,
+                        customClass       : 'question_swal',
+                        timer             : 4000
+                    });
+                    return false;
+                }
+            }
+
+            // проверка файлов
+            if (errorFile) {
+                swal({
+                    title             : '',
+                    text              : 'Не добавлены все документы <i class="close fa fa-times fa"></i>',
+                    html              : true,
+                    showConfirmButton : false,
+                    customClass       : 'question_swal',
+                    timer             : 4000
+                });
+                return false;
+            }
+            else {
+                // проверка каптчи
+                // if(captcha.length == 0) {
+                //     swal({
+                //         title             : '',
+                //         text              : 'Не пройдена проверка от ботов! Активируйте каптчу <i class="close fa fa-times fa"></i>',
+                //         html              : true,
+                //         showConfirmButton : false,
+                //         customClass       : 'question_swal',
+                //         timer             : 4000
+                //     });
+                //     return false;
+                // }
+                // else {
+                    $('.overlay_callback').css('display','block');
+                    $('.overlay_callback .popup_container_outer').css('display','none');
+                    $.ajax({
+                        url: "ajax_form.php",
+                        type: "POST",
+                        dataType : "json",
+                        cache: false,
+                        contentType: false,
+                        processData: false,
+                        data: formData, //указываем что отправляем
+                        success: function(response){
+                            if (response == '') {
+                                swal({
+                                    title             : '',
+                                    text              : 'Данные успешно добавлены. Мы с Вами свяжемся после их обработки. <i class="close fa fa-times fa"></i>',
+                                    html              : true,
+                                    showConfirmButton : false,
+                                    customClass       : 'question_swal',
+                                    timer             : 4000
+                                });
+                                // clear data
+                                $('#form_upload_foto input[type="text"], #form_upload_foto textarea').val('');
+                                $('#form_upload_foto input[name="phone"], #form_upload_foto input[name="phone2"], #form_upload_foto input[name="phone3"]').val('');
+                                // $('#form_upload_foto input[type="file"]').reset();
+                                $('#form_upload_foto input[type="file"]').prop('value', null);
+
+                                $('.overlay_callback').css('display','none');
+                                $('.overlay_callback .popup_container_outer').css('display','block');
+                            }
+                            else {
+                                swal({
+                                    title             : '',
+                                    text              : response + '<i class="close fa fa-times fa"></i>',
+                                    html              : true,
+                                    showConfirmButton : false,
+                                    customClass       : 'question_swal',
+                                    timer             : 4000
+                                });
+                            }
+                            return false;
+                        }
+                    });
+                // }
+            }
+        }
+        else {
+            swal({
+                title             : '',
+                text              : 'Не корректно заполнены обязательные поля <i class="close fa fa-times fa"></i>',
+                html              : true,
+                showConfirmButton : false,
+                customClass       : 'question_swal',
+                timer             : 4000
+            });
+            return false;
+        }
+    });
+
+
+
+
+
+});
+
+// доп функция для валидации полей формы вакансии
+function validateVakansiyaField(fieldName) {
+    var error = true;
+    var field = $('#form_upload_foto input[name="'+fieldName+'"]');
+    // обший случай
+    if (field.val() == '') error = false;
+    if (fieldName == 'idd' && field.val().length < 10) error = false;// если инн
+    if (fieldName == 'phone' && field.val().length < 12) error = false; // если телефон
+    if (fieldName == 'mail_v' && !isValidMail(field.val())) error = false; // если почта
+
+    if (!error) field.css('border-color', 'red');
+    else        field.css('border-color', '#d1d1d1');
+
+    return error;
+}
+
+// правильность ввода мыла
+function isValidMail(mail) {
+    var pattern = new RegExp(/^(("[\w-\s]+")|([\w-]+(?:\.[\w-]+)*)|("[\w-\s]+")([\w-]+(?:\.[\w-]+)*))(@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$)|(@\[?((25[0-5]\.|2[0-4][0-9]\.|1[0-9]{2}\.|[0-9]{1,2}\.))((25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\.){2}(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[0-9]{1,2})\]?$)/i);
+    return pattern.test(mail);
+}
+
+// проверка расширения и размера файла перед загрузкой
+function validateFile(uploadId) {
+    var maxSize   = 5120000;
+    var fileSize  = document.getElementById(uploadId).files[0].size;
+    var fileName  = document.getElementById(uploadId).value.replace(/\\/g, '/').replace(/.*\//, '');
+    var dimension = fileName.split('.').pop();
+
+    if (fileSize > maxSize) swal('Максимальный размер файла 5МБ. Выберите другой файл или оптимизируйте существующий');
+    if (dimension != 'jpg' && dimension != 'jpeg' && dimension != 'png') swal('Допустимы только форматы jpeg, jpg, png. Выберите другой файл или оптимизируйте существующий');
+}
+
+// кроссбраузерное определение размеров браузера
+function getPageSize(){
+    var xScroll, yScroll;
+
+    if (window.innerHeight && window.scrollMaxY) {
+        xScroll = document.body.scrollWidth;
+        yScroll = window.innerHeight + window.scrollMaxY;
+    } else if (document.body.scrollHeight > document.body.offsetHeight){ // all but Explorer Mac
+        xScroll = document.body.scrollWidth;
+        yScroll = document.body.scrollHeight;
+    } else if (document.documentElement && document.documentElement.scrollHeight > document.documentElement.offsetHeight){ // Explorer 6 strict mode
+        xScroll = document.documentElement.scrollWidth;
+        yScroll = document.documentElement.scrollHeight;
+    } else { // Explorer Mac...would also work in Mozilla and Safari
+        xScroll = document.body.offsetWidth;
+        yScroll = document.body.offsetHeight;
+    }
+
+    var windowWidth, windowHeight;
+    if (self.innerHeight) { // all except Explorer
+        windowWidth = self.innerWidth;
+        windowHeight = self.innerHeight;
+    } else if (document.documentElement && document.documentElement.clientHeight) { // Explorer 6 Strict Mode
+        windowWidth = document.documentElement.clientWidth;
+        windowHeight = document.documentElement.clientHeight;
+    } else if (document.body) { // other Explorers
+        windowWidth = document.body.clientWidth;
+        windowHeight = document.body.clientHeight;
+    }
+
+    // for small pages with total height less then height of the viewport
+    if(yScroll < windowHeight){
+        pageHeight = windowHeight;
+    } else {
+        pageHeight = yScroll;
+    }
+
+    // for small pages with total width less then width of the viewport
+    if(xScroll < windowWidth){
+        pageWidth = windowWidth;
+    } else {
+        pageWidth = xScroll;
+    }
+
+    return [pageWidth,pageHeight,windowWidth,windowHeight];
+}
+
+// включение/отколючение анимации в зависимости от размеров экрана. Для моб выкл
+$(window).on('load', mobAnimate);
+function mobAnimate(){
+    // var pageSize = getPageSize();
+    // var windowWidth = pageSize[0];
+    // if (windowWidth >= '768') {
+    //     // animate
+    //     $('header .h1_wrapper h1 .over_h1').viewportChecker({
+    //         classToAdd: 'visible animated fadeInLeft',
+    //         offset: 100
+    //     });
+    //     $('header .h1_wrapper h1 .under_h1').viewportChecker({
+    //         classToAdd: 'visible animated fadeInRight',
+    //         offset: 100
+    //     });
+    //     $('header .advantages .item_wrapper').eq(0).viewportChecker({
+    //         classToAdd: 'visible animated fadeInLeft',
+    //         offset: 100,
+    //         callbackFunction: function(){
+    //             setTimeout(function(){
+    //                 $('header .advantages .item_wrapper').eq(1).viewportChecker({
+    //                     classToAdd: 'visible animated fadeInLeft',
+    //                     offset: 100,
+    //                     callbackFunction: function(){
+    //                         setTimeout(function(){
+    //                             $('header .advantages .item_wrapper').eq(2).viewportChecker({
+    //                                 classToAdd: 'visible animated fadeInLeft',
+    //                                 offset: 100
+    //                             });
+    //                         },800);
+    //                     }
+    //                 });
+    //             },800);
+    //         }
+    //     });
+    //     $('h2, h3').viewportChecker({
+    //         classToAdd: 'visible animated fadeInUp',
+    //         offset: 100
+    //     });
+    //     $('p').viewportChecker({
+    //         classToAdd: 'visible animated fadeIn',
+    //         offset: 100
+    //     });
+    //     $('.content .aside .how_work_wrapper .row').eq(0).viewportChecker({
+    //         classToAdd: 'visible animated fadeInDown',
+    //         offset: 100,
+    //         callbackFunction: function(){
+    //             setTimeout(function(){
+    //                 $('.content .aside .how_work_wrapper .row').eq(1).viewportChecker({
+    //                     classToAdd: 'visible animated fadeInDown',
+    //                     offset: 100,
+    //                     callbackFunction: function(){
+    //                         setTimeout(function(){
+    //                             $('.content .aside .how_work_wrapper .row').eq(2).viewportChecker({
+    //                                 classToAdd: 'visible animated fadeInDown',
+    //                                 offset: 100,
+    //                                 callbackFunction: function(){
+    //                                     setTimeout(function(){
+    //                                         $('.content .aside .how_work_wrapper .row').eq(3).viewportChecker({
+    //                                             classToAdd: 'visible animated fadeInDown',
+    //                                             offset: 100
+    //                                         });
+    //                                     },800);
+    //                                 }
+    //                             });
+    //                         },800);
+    //                     }
+    //                 });
+    //             },800);
+    //         }
+    //     });
+    //     $('.content2 .tabs').viewportChecker({
+    //         classToAdd: 'visible animated fadeInDown',
+    //         offset: 100
+    //     });
+    //     $('.banner .left').viewportChecker({
+    //         classToAdd: 'visible animated zoomIn',
+    //         offset: 100,
+    //         callbackFunction: function(){
+    //             setTimeout(function(){
+    //                 $('.banner .center').viewportChecker({
+    //                     classToAdd: 'visible animated zoomIn',
+    //                     offset: 100,
+    //                     callbackFunction: function(){
+    //                         setTimeout(function(){
+    //                             $('.banner .right').viewportChecker({
+    //                                 classToAdd: 'visible animated zoomIn',
+    //                                 offset: 100
+    //                             });
+    //                         },800);
+    //                     }
+    //                 });
+    //             },800);
+    //         }
+    //     });
+    //     $('.gd_question_page_container .gd_question_row .gd_question_item').viewportChecker({
+    //         classToAdd: 'visible animated zoomIn',
+    //         offset: 100
+    //     });
+    //     $('.content ul').viewportChecker({
+    //         classToAdd: 'visible animated fadeIn',
+    //         offset: 100
+    //     });
+    //     $('.text3_services .left_zayavka').viewportChecker({
+    //         classToAdd: 'visible animated fadeInLeft',
+    //         offset: 100,
+    //         callbackFunction: function(){
+    //             setTimeout(function(){
+    //                 $('.text3_services .right_zayavka').viewportChecker({
+    //                     classToAdd: 'visible animated fadeInLeft',
+    //                     offset: 100
+    //                 });
+    //             },800);
+    //         }
+    //     });
+    //     $('.content .services_aside').viewportChecker({
+    //         classToAdd: 'visible animated fadeInDown',
+    //         offset: 100
+    //     });
+    //     $('.cars_wrapper, .multi_column').viewportChecker({
+    //         classToAdd: 'visible animated fadeInDown',
+    //         offset: 100
+    //     });
+    //     $('.content2 .tabs .right_tabs .tab_item ul').css('opacity', '1');
+    // }
+    // else {
+        $('header .h1_wrapper h1 .over_h1, header .h1_wrapper h1 .under_h1, header .advantages .item_wrapper, h2, h3, p, .content .aside .how_work_wrapper .row, .content2 .tabs, .banner .left, .gd_question_page_container .gd_question_row .gd_question_item, .content ul, .text3_services .left_zayavka, .content .services_aside,.cars_wrapper, .multi_column, .text3_services .right_zayavka, .banner .center, .banner .right').css('opacity', '1');
+    // }
+}
